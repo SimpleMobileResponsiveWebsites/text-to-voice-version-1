@@ -1,9 +1,2 @@
-streamlit==1.32.0
-pandas==2.2.1
-pyttsx3==2.90
-numpy==1.26.3
-comtypes==1.2.0  # Windows speech synthesis support
-# For Streamlit Cloud compatibility
-altair==5.3.0
-protobuf==4.25.3
-typing-extensions==4.10.0
+streamlit>=1.25.0
+gtts>=2.3.0
