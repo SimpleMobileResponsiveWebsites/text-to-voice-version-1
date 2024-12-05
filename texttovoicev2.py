@@ -1,18 +1,17 @@
 import streamlit as st
-import pandas as pd
 import pyttsx3
 import io
 import os
 
 def text_to_speech(text):
     """
-    Convert input text to speech using pyttsx3 library
+    Convert input text to speech using pyttsx3 library.
     
     Args:
-        text (str): Input text to convert to speech
+        text (str): Input text to convert to speech.
     
     Returns:
-        bytes: Audio file in bytes
+        bytes: Audio file in bytes.
     """
     # Initialize the text-to-speech engine
     engine = pyttsx3.init()
@@ -20,9 +19,16 @@ def text_to_speech(text):
     # Create an in-memory bytes buffer
     audio_buffer = io.BytesIO()
     
-    # Save audio to the buffer
-    engine.save_to_file(text, audio_buffer)
+    # Save audio to a temporary file
+    engine.save_to_file(text, "temp_audio.wav")
     engine.runAndWait()
+    
+    # Read the temporary audio file into the buffer
+    with open("temp_audio.wav", "rb") as audio_file:
+        audio_buffer.write(audio_file.read())
+    
+    # Remove the temporary file
+    os.remove("temp_audio.wav")
     
     # Reset buffer position
     audio_buffer.seek(0)
@@ -31,45 +37,41 @@ def text_to_speech(text):
 
 def main():
     """
-    Main Streamlit application for text-to-speech conversion
+    Main Streamlit application for text-to-speech conversion.
     """
     # Set page title and icon
-    st.set_page_config(page_title="CSV Text-to-Speech Converter", page_icon="🔊")
+    st.set_page_config(page_title="Text-to-Speech Converter", page_icon="🔊")
     
     # Title and description
-    st.title("CSV Text-to-Speech Converter 🎙️")
-    st.write("Upload a CSV file and convert text to speech!")
+    st.title("Text-to-Speech Converter 🎙️")
+    st.write("Upload a `.txt` file or paste text into the application to convert it to speech.")
     
-    # File uploader
-    uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'])
+    # Option to upload a file or paste text
+    text_source = st.radio("Choose text input method:", options=["Upload .txt File", "Paste Text"])
     
-    # Column selection
-    if uploaded_file is not None:
-        # Read the CSV file
-        df = pd.read_csv(uploaded_file)
-        
-        # Display column names
-        st.write("Available Columns:", list(df.columns))
-        
-        # Column selection dropdown
-        text_column = st.selectbox("Select the column with text to convert", df.columns)
-        
-        # Text preview
-        st.subheader("Text Preview")
-        preview_rows = st.slider("Select number of rows to preview", 1, min(10, len(df)), 3)
-        st.dataframe(df[text_column].head(preview_rows))
-        
-        # Conversion buttons
-        if st.button("Convert Selected Column to Speech"):
+    user_text = ""
+    if text_source == "Upload .txt File":
+        uploaded_file = st.file_uploader("Choose a .txt file", type=["txt"])
+        if uploaded_file is not None:
+            # Read content from the uploaded .txt file
             try:
-                # Combine text from selected column
-                full_text = " ".join(df[text_column].dropna().astype(str))
-                
-                # Convert to speech
-                audio_bytes = text_to_speech(full_text)
+                user_text = uploaded_file.read().decode("utf-8")
+                st.success("File successfully uploaded.")
+                st.text_area("Uploaded Text Preview:", user_text, height=200, disabled=True)
+            except Exception as e:
+                st.error(f"Error reading file: {e}")
+    elif text_source == "Paste Text":
+        user_text = st.text_area("Enter text here:", placeholder="Type or paste your text here...", height=200)
+    
+    # Conversion button
+    if st.button("Convert Text to Speech"):
+        if user_text.strip():
+            try:
+                # Convert text to speech
+                audio_bytes = text_to_speech(user_text)
                 
                 # Play audio
-                st.audio(audio_bytes, format='audio/wav')
+                st.audio(audio_bytes, format="audio/wav")
                 
                 # Download button
                 st.download_button(
@@ -83,6 +85,8 @@ def main():
             
             except Exception as e:
                 st.error(f"An error occurred: {e}")
+        else:
+            st.warning("Please provide some text either by uploading a .txt file or pasting it.")
 
 # Run the Streamlit app
 if __name__ == "__main__":
